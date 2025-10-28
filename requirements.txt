@@ -1,0 +1,14 @@
+groq
+langchain
+langchain-community
+langchain-core
+langchain-openai
+python-dotenv
+sounddevice
+numpy
+scipy
+fastapi
+uvicorn
+jinja2
+openai
+geopy
