@@ -7,6 +7,8 @@ A real-time voice conversation AI assistant powered by OpenAI's GPT models, Whis
 ![](https://img.shields.io/badge/OpenAI-API-orange.svg)
 ![](https://img.shields.io/badge/license-MIT-blue.svg)
 
+![voice](voice.png)
+
 # ✨ Features
 
 🎤 Real-time Voice Recognition - Speak naturally, powered by OpenAI Whisper
