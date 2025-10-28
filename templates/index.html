@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Voice Assistant</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --background-color: #171717;
+            --surface-color: #262626;
+            --primary-color: #00BFFF;
+            --text-color: #E0E0E0;
+            --secondary-text: #A3A3A3;
+            --error-color: #F87171;
+            --success-color: #4ADE80;
+            --grid-color: rgba(60, 60, 60, 0.1);
+            --spacing-unit: 8px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @keyframes pulse-grid {
+            0% { background-size: 50px 50px; }
+            50% { background-size: 52px 52px; }
+            100% { background-size: 50px 50px; }
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background-color: var(--background-color);
+            background-image: linear-gradient(to right, var(--grid-color) 1px, transparent 1px), 
+                              linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: pulse-grid 20s infinite alternate linear;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: var(--surface-color);
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            min-height: 85vh;
+            overflow: hidden;
+            z-index: 10;
+        }
+
+        header {
+            padding: calc(3 * var(--spacing-unit));
+            border-bottom: 1px solid #383838;
+            background-color: #1f1f1f;
+        }
+        
+        h1 {
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: var(--text-color);
+            text-align: center;
+        }
+        
+        .voice-selector-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: calc(2 * var(--spacing-unit));
+        }
+
+        label {
+            font-size: 0.9rem;
+            color: var(--secondary-text);
+            margin-right: calc(1 * var(--spacing-unit));
+        }
+
+        #voiceSelector {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #454545;
+            background-color: #383838;
+            color: var(--text-color);
+            font-size: 0.9rem;
+            -webkit-appearance: none; 
+            -moz-appearance: none;    
+            appearance: none;         
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2012%2012%22%3E%3Cpath%20fill%3D%22%23E0E0E0%22%20d%3D%22M4.1%207.2l3.4-3.4%20.7.7-4.1%204.1-.7-.7%203.4-3.4z%22%2F%3E%3Cpath%20fill%3D%22%23E0E0E0%22%20d%3D%22M7.9%207.2L4.5%203.8l-.7.7%204.1%204.1.7-.7-3.4-3.4z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            padding-right: 28px;
+            cursor: pointer;
+        }
+
+        #voiceSelector:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Audio stats display */
+        .audio-stats {
+            font-size: 0.75rem;
+            color: var(--secondary-text);
+            text-align: center;
+            margin-top: 8px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .conversation {
+            flex-grow: 1;
+            padding: calc(3 * var(--spacing-unit));
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: calc(2 * var(--spacing-unit));
+        }
+
+        .conversation::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .conversation::-webkit-scrollbar-track {
+            background: #1f1f1f;
+        }
+
+        .conversation::-webkit-scrollbar-thumb {
+            background: #454545;
+            border-radius: 4px;
+        }
+
+        .message {
+            display: flex;
+            width: 100%;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-content {
+            padding: calc(1.5 * var(--spacing-unit)) calc(2.5 * var(--spacing-unit));
+            border-radius: 18px;
+            max-width: 75%;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            position: relative;
+            word-wrap: break-word;
+        }
+        
+        .user-message {
+            justify-content: flex-end;
+        }
+        .user-message .message-content {
+            background-color: var(--primary-color); 
+            color: #171717;
+            border-bottom-right-radius: 4px;
+        }
+
+        .assistant-message {
+            justify-content: flex-start;
+        }
+        .assistant-message .message-content {
+            background-color: #383838;
+            color: var(--text-color);
+            border-bottom-left-radius: 4px;
+        }
+        
+        footer {
+            padding: calc(3 * var(--spacing-unit));
+            border-top: 1px solid #383838;
+            background-color: #1f1f1f; 
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: calc(2 * var(--spacing-unit));
+        }
+        
+        #status {
+            font-size: 0.85rem;
+            color: var(--secondary-text);
+            min-height: 20px;
+            font-weight: 400;
+            text-align: center;
+        }
+        #status.recording {
+            color: var(--error-color);
+            font-weight: 500;
+        }
+        #status.processing {
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+        #status.success {
+            color: var(--success-color);
+            font-weight: 500;
+        }
+
+        .btn {
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            width: 72px;
+            height: 72px;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: #171717; 
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: #4dc2ff;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+            transform: scale(1.05);
+        }
+        
+        .btn-primary .material-icons {
+            font-size: 36px;
+        }
+
+        .btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        @keyframes pulse-record {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 15px rgba(248, 113, 113, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(248, 113, 113, 0); }
+        }
+
+        #recordBtn.recording {
+            background-color: var(--error-color);
+            color: white;
+            animation: pulse-record 1.8s infinite;
+        }
+        
+        .dot-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+        .dot {
+            width: 10px;
+            height: 10px;
+            margin: 0 4px;
+            background-color: white;
+            border-radius: 50%;
+            display: inline-block;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+        }
+
+        @keyframes pulse-wave {
+            0% { box-shadow: 0 0 0 0 rgba(0, 191, 255, 0.5); }
+            100% { box-shadow: 0 0 0 10px rgba(0, 191, 255, 0); }
+        }
+        .playing-wave-icon {
+            animation: pulse-wave 1s infinite;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            padding: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><span style="color: var(--primary-color);">AI</span> Voice Assistant</h1>
+            
+            <div class="voice-selector-container">
+                <label for="voiceSelector">AI Voice:</label>
+                <select id="voiceSelector">
+                    <optgroup label="Voices">
+                        <option value="coral">Coral</option>
+                        <option value="alloy">Alloy</option>
+                        <option value="ash">Ash</option>
+                        <option value="ballad">Ballad</option>
+                        <option value="coral">Coral</option>
+                        <option value="echo">Echo</option>
+                        <option value="fable">Fable</option>
+                        <option value="nova">Nova</option>
+                        <option value="onyx">Onyx</option>
+                        <option value="sage">Sage</option>
+                        <option value="shimmer">Shimmer</option>
+                    </optgroup>
+                </select>
+            </div>
+            <div class="audio-stats" id="audioStats"></div>
+        </header>
+
+        <div class="conversation" id="conversation">
+            <div class="message assistant-message">
+                <div class="message-content">Hello! I'm your AI voice assistant. Tap the microphone to start speaking.</div>
+            </div>
+        </div>
+
+        <footer>
+            <div class="controls">
+                <div id="status">Ready to talk</div>
+                <button id="recordBtn" class="btn btn-primary" title="Start Recording">
+                    <i class="material-icons">mic</i>
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        const API_URL = `${window.location.origin}/talk`;
+        const recordBtn = document.getElementById('recordBtn');
+        const statusDiv = document.getElementById('status');
+        const conversationDiv = document.getElementById('conversation');
+        const voiceSelector = document.getElementById('voiceSelector');
+        const audioStatsDiv = document.getElementById('audioStats');
+
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+        let audioContext;
+
+        // Initialize audio context early
+        function initAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                console.log('🎵 Audio Context initialized:', {
+                    sampleRate: audioContext.sampleRate,
+                    state: audioContext.state
+                });
+                updateAudioStats();
+            }
+        }
+
+        function updateAudioStats() {
+            if (audioContext) {
+                audioStatsDiv.textContent = `Sample Rate: ${audioContext.sampleRate} Hz`;
+            }
+        }
+
+        function updateStatus(message, type = '') {
+            statusDiv.textContent = message;
+            statusDiv.className = type;
+        }
+
+        function addMessage(text, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}-message`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = text;
+            
+            messageDiv.appendChild(contentDiv);
+            conversationDiv.appendChild(messageDiv);
+            conversationDiv.scrollTop = conversationDiv.scrollHeight;
+        }
+
+        function setButtonState(state) {
+            recordBtn.disabled = true;
+            recordBtn.classList.remove('recording', 'playing-wave-icon');
+
+            if (state === 'ready') {
+                recordBtn.disabled = false;
+                recordBtn.innerHTML = '<i class="material-icons">mic</i>';
+                updateStatus('Ready to talk');
+                voiceSelector.disabled = false;
+            } else if (state === 'recording') {
+                recordBtn.disabled = false;
+                recordBtn.classList.add('recording');
+                recordBtn.innerHTML = '<i class="material-icons">stop</i>';
+                updateStatus('Recording... speak now!', 'recording');
+                voiceSelector.disabled = true;
+            } else if (state === 'processing') {
+                recordBtn.innerHTML = `
+                    <div class="dot-container">
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                    </div>`;
+                updateStatus('Processing...', 'processing');
+                voiceSelector.disabled = true;
+            } else if (state === 'playing') {
+                recordBtn.innerHTML = '<i class="material-icons playing-wave-icon">volume_up</i>';
+                recordBtn.classList.add('playing-wave-icon');
+                updateStatus('Speaking...', 'success');
+                voiceSelector.disabled = true;
+            }
+        }
+        
+        async function playAudioResponse(audioResponse) {
+            setButtonState('playing');
+
+            const { sample_rate, audio_chunks } = audioResponse;
+            
+            if (!audioContext) {
+                initAudioContext();
+            }
+
+            console.log('🔊 Playing audio:', {
+                chunks: audio_chunks.length,
+                sampleRate: sample_rate,
+                contextSampleRate: audioContext.sampleRate
+            });
+
+            for (let i = 0; i < audio_chunks.length; i++) {
+                const chunk = audio_chunks[i];
+                
+                // Create audio buffer with correct sample rate
+                const audioBuffer = audioContext.createBuffer(1, chunk.length, sample_rate);
+                audioBuffer.getChannelData(0).set(chunk);
+
+                const source = audioContext.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(audioContext.destination);
+                
+                await new Promise((resolve, reject) => {
+                    source.onended = resolve;
+                    source.onerror = reject;
+                    source.start();
+                });
+            }
+            
+            setButtonState('ready');
+        }
+
+        async function handleRecording() {
+            if (isRecording) {
+                // STOP recording
+                console.log('⏹️ Stopping recording...');
+                mediaRecorder.stop();
+                isRecording = false;
+                setButtonState('processing');
+            } else {
+                // START recording
+                try {
+                    console.log('🎤 Starting recording...');
+                    
+                    // Initialize audio context if not already done
+                    initAudioContext();
+                    
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true,
+                            sampleRate: audioContext.sampleRate // Request native sample rate
+                        } 
+                    });
+                    
+                    // Try to use high-quality audio format
+                    const mimeTypes = [
+                        'audio/webm;codecs=opus',
+                        'audio/webm',
+                        'audio/ogg;codecs=opus',
+                        'audio/mp4'
+                    ];
+                    
+                    let selectedMimeType = '';
+                    for (const mimeType of mimeTypes) {
+                        if (MediaRecorder.isTypeSupported(mimeType)) {
+                            selectedMimeType = mimeType;
+                            break;
+                        }
+                    }
+                    
+                    console.log('📹 Using MIME type:', selectedMimeType || 'default');
+                    
+                    const options = selectedMimeType ? { mimeType: selectedMimeType } : {};
+                    mediaRecorder = new MediaRecorder(stream, options);
+
+                    audioChunks = [];
+                    
+                    mediaRecorder.ondataavailable = event => {
+                        if (event.data.size > 0) {
+                            audioChunks.push(event.data);
+                            console.log('📦 Audio chunk received:', event.data.size, 'bytes');
+                        }
+                    };
+
+                    mediaRecorder.onstop = async () => {
+                        console.log('🛑 Recording stopped, processing...');
+                        const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+                        console.log('📊 Audio blob size:', audioBlob.size, 'bytes');
+                        await sendAudioBlob(audioBlob);
+                        stream.getTracks().forEach(track => track.stop());
+                    };
+
+                    mediaRecorder.start();
+                    isRecording = true;
+                    setButtonState('recording');
+                    
+                } catch (error) {
+                    console.error('❌ Microphone error:', error);
+                    updateStatus('Microphone Error: Check permissions.', 'recording');
+                    addMessage('ERROR: Could not access microphone. Please check your browser permissions.', 'assistant');
+                    setButtonState('ready');
+                }
+            }
+        }
+        
+        async function sendAudioBlob(blob) {
+            setButtonState('processing');
+
+            try {
+                // Decode audio data
+                const arrayBuffer = await blob.arrayBuffer();
+                
+                if (!audioContext) {
+                    initAudioContext();
+                }
+                
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                
+                // Get mono audio data
+                const rawAudioData = audioBuffer.getChannelData(0);
+                const audioArray = Array.from(rawAudioData);
+                
+                // Calculate audio statistics
+                const maxAmplitude = Math.max(...audioArray.map(Math.abs));
+                const rmsAmplitude = Math.sqrt(audioArray.reduce((sum, val) => sum + val * val, 0) / audioArray.length);
+                const duration = audioArray.length / audioBuffer.sampleRate;
+                
+                console.log('📊 Audio stats:', {
+                    samples: audioArray.length,
+                    sampleRate: audioBuffer.sampleRate,
+                    duration: `${duration.toFixed(2)}s`,
+                    maxAmplitude: maxAmplitude.toFixed(4),
+                    rmsAmplitude: rmsAmplitude.toFixed(4)
+                });
+
+                // Validate audio
+                if (audioArray.length < 1600) {
+                    throw new Error('Audio too short. Please record for at least 0.5 seconds.');
+                }
+
+                if (maxAmplitude < 0.003) {
+                    throw new Error('Audio too quiet. Please speak louder or check your microphone.');
+                }
+                
+                const selectedVoice = voiceSelector.value;
+                
+                console.log('📤 Sending to API:', {
+                    audioLength: audioArray.length,
+                    sampleRate: audioBuffer.sampleRate,
+                    voice: selectedVoice
+                });
+
+                // Send to API with sample rate
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        audio_chunk: audioArray,
+                        sample_rate: audioBuffer.sampleRate, // ✅ CRITICAL: Send actual sample rate
+                        voice: selectedVoice 
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || data.error) {
+                    const errorMessage = data.error || data.detail || 'Unknown API error occurred.';
+                    console.error('❌ API Error:', errorMessage);
+                    updateStatus(`Error: ${errorMessage}`, 'recording');
+                    addMessage(`ERROR: ${errorMessage}`, 'assistant');
+                    setButtonState('ready');
+                    return;
+                }
+
+                console.log('✅ API Response received:', {
+                    transcription: data.transcription,
+                    aiResponseLength: data.ai_response?.length,
+                    audioChunks: data.audio_response?.audio_chunks?.length
+                });
+
+                if (data.transcription) {
+                    addMessage(data.transcription, 'user');
+                    updateStatus('Transcribed successfully', 'success');
+                }
+                
+                if (data.ai_response) {
+                    addMessage(data.ai_response, 'assistant');
+                }
+                
+                if (data.audio_response) {
+                    await playAudioResponse(data.audio_response);
+                } else {
+                    setButtonState('ready');
+                }
+
+            } catch (error) {
+                console.error('❌ Error:', error);
+                updateStatus(`Error: ${error.message}`, 'recording');
+                addMessage(`ERROR: ${error.message}`, 'assistant');
+                setButtonState('ready');
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            initAudioContext();
+            setButtonState('ready');
+            console.log('✅ Voice Assistant ready!');
+        });
+
+        // Event Listener
+        recordBtn.addEventListener('click', handleRecording);
+    </script>
+</body>
+</html>
